@@ -1,5 +1,4 @@
 import express from 'express';
-import router from './routes';
 import cons, {ProgressBar} from './console';
 import dotenv from "dotenv";
 import morgan from 'morgan';
@@ -9,18 +8,16 @@ dotenv.config();
 
 class app {
     public express;
-    private bar: ProgressBar;
 
     constructor() {
-        this.bar = new ProgressBar();
-        this.bar.start(100, 'StartApp');
+        cons.clear();
         this.express = express();
-        this.bar.update(100);
         this.mountRoutes();
+        this.applyMiddleware();
     }
 
     private mountRoutes(): void {
-        this.express.use('/',router);
+        this.express.use(env.CONTEXT_PATH,require('./routes').default);
     }
 
     private applyMiddleware(): void{
@@ -33,8 +30,10 @@ class app {
     public run(): void{
         const port = env.PORT
         this.express.listen(port, () => {
+            cons.red("Nox Infinity - Liqi Wallpapers")
             cons.yellow(`- Server running on port ${port}`);
-            cons.green(`- Debug mode: ${process.env.DEBUG_MODE}`);
+            cons.green(`- Debug mode: ${env.DEBUG_MODE}`);
+            cons.green(`- Context path: ${env.CONTEXT_PATH}`);
         });
     }
 }
