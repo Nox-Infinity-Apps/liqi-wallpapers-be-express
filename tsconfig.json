@@ -10,8 +10,11 @@
     "baseUrl": "./src",
     "paths": {
       "@/*": ["./*"],
-      "@config/*": ["config/*"],
-      "@db/*": ["database/*"]
+      "@config/*": ["./config/*"],
+      "@db/*": ["./database/*"],
+        "@models/*": ["./database/models/*"],
+        "@controllers/*": ["./controllers/*"],
+        "@middlewares/*": ["./middlewares/*"],
     },
     "lib": [
       "esnext",
