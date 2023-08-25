@@ -3,7 +3,7 @@ import { DataTypes, Model, Optional } from 'sequelize';
 import type { wallpapers, wallpapersId } from './wallpapers';
 
 export interface wallpapers_infoAttributes {
-  id: number;
+  wallpaper_id: number;
   wallpapers_id?: number;
   author?: string;
   like_times: number;
@@ -11,13 +11,13 @@ export interface wallpapers_infoAttributes {
   views: number;
 }
 
-export type wallpapers_infoPk = "id";
+export type wallpapers_infoPk = "wallpaper_id";
 export type wallpapers_infoId = wallpapers_info[wallpapers_infoPk];
-export type wallpapers_infoOptionalAttributes = "id" | "wallpapers_id" | "author" | "like_times" | "downloaded_times" | "views";
+export type wallpapers_infoOptionalAttributes = "wallpaper_id" | "wallpapers_id" | "author" | "like_times" | "downloaded_times" | "views";
 export type wallpapers_infoCreationAttributes = Optional<wallpapers_infoAttributes, wallpapers_infoOptionalAttributes>;
 
 export class wallpapers_info extends Model<wallpapers_infoAttributes, wallpapers_infoCreationAttributes> implements wallpapers_infoAttributes {
-  id!: number;
+  wallpaper_id!: number;
   wallpapers_id?: number;
   author?: string;
   like_times!: number;
@@ -32,7 +32,7 @@ export class wallpapers_info extends Model<wallpapers_infoAttributes, wallpapers
 
   static initModel(sequelize: Sequelize.Sequelize): typeof wallpapers_info {
     return wallpapers_info.init({
-    id: {
+    wallpaper_id: {
       autoIncrement: true,
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -75,7 +75,7 @@ export class wallpapers_info extends Model<wallpapers_infoAttributes, wallpapers
         unique: true,
         using: "BTREE",
         fields: [
-          { name: "id" },
+          { name: "wallpaper_id" },
         ]
       },
       {

@@ -1,0 +1,9 @@
+type Author {
+    name: String
+    books: [Book]
+}
+
+type Book {
+    title: String
+    author: Author
+}

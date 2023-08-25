@@ -1,51 +1,40 @@
-import express from 'express';
-import cons, {ProgressBar} from './console';
-import dotenv from "dotenv";
-import morgan from 'morgan';
-import env from './utils/env/envVars';
-import mysqlDatabase from "./database/mysql";
-import bodyParser from 'body-parser';
+import dovenv from "dotenv";
+import { ApolloServer } from '@apollo/server';
+import env from "./utils/env/envVars";
+import {startStandaloneServer} from "@apollo/server/standalone";
+import {resolvers, typeDefs} from './graphql'
+import mysqlDatabase, {MySQLDatabase} from "./database/mysql";
+import {initModels} from ".//database/models/init-models";
 
-dotenv.config();
+dovenv.config();
 
-class app {
-    public express;
-    private database;
+type ModelInterface = {aov_hero: any, categories: any, wallpapers: any, wallpapers_info: any}
 
-    constructor() {
-        cons.clear();
-        this.express = express();
-        this.mountRoutes();
-        this.applyMiddleware();
-        this.database = mysqlDatabase
-    }
-
-    private mountRoutes(): void {
-        this.express.use(env.CONTEXT_PATH,require('./routes').default);
-    }
-
-    private connectDatabase(): void{
-        this.database.connect();
-    }
-
-    private applyMiddleware(): void{
-        //!morgan
-        this.express.use(bodyParser.json());
-        if(Boolean(env.DEBUG_MODE)){
-            this.express.use(morgan('dev'));
-        }
+class app{
+    private server: ApolloServer;
+    private readonly model: ModelInterface;
+    constructor(){
+        mysqlDatabase.connect();
+        this.model = initModels(mysqlDatabase.mysqlInstance.sequelize)
+        this.server = new ApolloServer({
+            typeDefs,
+            resolvers: resolvers(this.model)
+        });
     }
 
     public run(): void{
-        this.connectDatabase();
-        const port = env.PORT
-        this.express.listen(port, () => {
-            cons.red("Nox Infinity - Liqi wallpapers.controllers.ts")
-            cons.yellow(`- Server running on port ${port}`);
-            cons.green(`- Debug mode: ${env.DEBUG_MODE}`);
-            cons.green(`- Context path: ${env.CONTEXT_PATH}`);
-        });
+         startStandaloneServer(this.server, {
+             listen: { port: Number(env.PORT) },
+             context: async ({ req, res }) => {
+                    return {
+                        req,
+                        res,
+                    };
+             }
+             }).then(({url}) => {
+            console.log(`🚀  Server ready at ${url}`);
+         })
     }
 }
 
-export default new app()
+export default new app();

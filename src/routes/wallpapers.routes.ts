@@ -16,8 +16,8 @@ const router = Router();
  */
 
 router.get("/", wallpaperController.getWallpapers);
-router.get('/like/:wallpaper_id', wallpaperController.likeWallpaper);
-router.get('/hot', wallpaperController.getHotWallpapers);
+router.get("/like/:wallpaper_id", wallpaperController.likeWallpaper);
+router.get("/hot", wallpaperController.getHotWallpapers);
 
 router.get("/wallpapers", (req: Request, res: Response): void => {
   res.json({

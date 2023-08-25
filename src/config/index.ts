@@ -1,4 +1,4 @@
-import { IConfig } from "@/@types/config.type";
+import { IConfig } from "../@types/config.type";
 
 export const config: IConfig = {
   DEFAULT_PORT: 3000,

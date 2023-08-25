@@ -17,54 +17,87 @@ enum WallpaperType {
   image = "image",
   id = "wallpapers_id",
   name = "name",
-  permission = "canDownload"
+  permission = "canDownload",
 }
 
 class wallpaperController {
   construct() {}
 
   static async getHotWallpapers(req: Request, res: Response) {
-    const models = initModels(
-        mysqlDatabase.mysqlInstance.sequelize,
-        );
+    const models = initModels(mysqlDatabase.mysqlInstance.sequelize);
 
     try {
       const schema = zod.object({
         limit: zod.number(),
       });
-        const {limit} = schema.parse({
-            limit: Number(req.query.limit),
-        })
+      const { limit } = schema.parse({
+        limit: Number(req.query.limit),
+      });
 
       const hotWallpapers = await models.wallpapers.findAll({
-        attributes: ['id', 'name', 'image'],
+        attributes: ["id", "name", "image"],
         include: [
           {
             model: models.wallpapers_info,
-            as: 'wallpapers_infos',
-            attributes: ['like_times'],
-            order: [['like_times', 'DESC']],
-            limit: 1
-          }
+            as: "wallpapers_infos",
+            attributes: ["like_times"],
+            order: [["like_times", "DESC"]],
+            limit: 1,
+          },
         ],
-        order: [[models.wallpapers_info, 'like_times', 'DESC']],
-        limit: 10
+        order: [[models.wallpapers_info, "like_times", "DESC"]],
+        limit: 10,
       });
 
-        res.json({
-            message: "success",
-            description: "Wallpapers fetched successfully",
-            wallpapers: hotWallpapers
-        }).status(200);
-    }catch(err) {
-        res.json({
-            message: "error",
-            description: "Error while parsing query parameters",
-            error: err
+      res
+        .json({
+          message: "success",
+          description: "Wallpapers fetched successfully",
+          wallpapers: hotWallpapers,
         })
+        .status(200);
+    } catch (err) {
+      res.json({
+        message: "error",
+        description: "Error while parsing query parameters",
+        error: err,
+      });
     }
   }
 
+  static async addWallpaper(req: Request, res: Response){
+    const wallpaperModel = initModels(
+        mysqlDatabase.mysqlInstance.sequelize,
+    ).wallpapers;
+    const wallpaperInfoModel = initModels(
+        mysqlDatabase.mysqlInstance.sequelize,
+    ).wallpapers_info;
+    try {
+      const nw = await wallpaperModel.create({
+        name: req.body.name || "Untitled",
+        image: req.body.image,
+        category_id: req.body.category_id,
+        canDownload: req.body.canDownload,
+      });
+
+      const id = nw.wallpapers_id;
+      await wallpaperInfoModel.create({
+        wallpapers_id: id,
+        like_times: 0,
+      });
+      res.json({
+        message: "success",
+        description: "Wallpaper added successfully",
+      })
+
+    } catch (err) {
+        res.json({
+            message: "error",
+            description: "Error while parsing query parameters",
+            error: err,
+        });
+    }
+  }
 
   static async likeWallpaper(req: Request, res: Response) {
     const wallpaperModel = initModels(
@@ -74,27 +107,28 @@ class wallpaperController {
       const schema = zod.object({
         wallpaper_id: zod.number(),
       });
-      const {wallpaper_id} = schema.parse({
+      const { wallpaper_id } = schema.parse({
         wallpaper_id: Number(req.params.wallpaper_id),
       });
       const wallpaper = await wallpaperModel.findOne({
-            where: {
-                wallpapers_id: wallpaper_id
-            }
-        });
+        where: {
+          wallpapers_id: wallpaper_id,
+        },
+      });
 
-      if(wallpaper) {
-        await wallpaper.increment('like_times', {by: 1});
+      if (wallpaper) {
+        await wallpaper.increment("like_times", { by: 1 });
         res.json({
           message: "success",
           description: "Wallpaper liked successfully",
-        })
-      }else throw new Error("Wallpaper not found "+wallpaper_id);
-    }catch(err) {
+        });
+      } else throw new Error("Wallpaper not found " + wallpaper_id);
+    } catch (err) {
       res.json({
         message: "error",
-        description: "Error while parsing query parameters or wallpaper not found"+ err,
-      })
+        description:
+          "Error while parsing query parameters or wallpaper not found" + err,
+      });
     }
   }
 
@@ -127,7 +161,12 @@ class wallpaperController {
       const wallpapers = await wallpaperModel.findAll({
         limit: limitValue,
         offset: nextValue,
-        attributes: [WallpaperType.id, WallpaperType.image, WallpaperType.name, WallpaperType.permission],
+        attributes: [
+          WallpaperType.id,
+          WallpaperType.image,
+          WallpaperType.name,
+          WallpaperType.permission,
+        ],
         order: [[sort_by || WallpaperType.id, order || Order.asc]],
       });
       res
@@ -142,6 +181,7 @@ class wallpaperController {
         .json({
           message: "error",
           description: "Error while parsing query parameters",
+          error: err,
         })
         .status(400);
     }

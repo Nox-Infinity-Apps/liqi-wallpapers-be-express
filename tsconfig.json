@@ -3,18 +3,20 @@
     "module": "commonjs",
     "esModuleInterop": true,
     "target": "ESNext",
+    "typeRoots": ["node_modules/@types", "src/@types"],
     "noImplicitAny": false,
     "moduleResolution": "node",
     "sourceMap": true,
     "outDir": "dist",
+    "rootDirs": ["src"],
     "baseUrl": "./src",
     "paths": {
-      "@/*": ["./*"],
-      "@config/*": ["./config/*"],
-      "@db/*": ["./database/*"],
-        "@models/*": ["./database/models/*"],
-        "@controllers/*": ["./controllers/*"],
-        "@middlewares/*": ["./middlewares/*"],
+      "@/*": ["*"],
+      "@config/*": ["config/*"],
+      "@db/*": ["database/*"],
+        "@models/*": ["database/models/*"],
+        "@controllers/*": ["controllers/*"],
+        "@middlewares/*": ["middlewares/*"],
     },
     "lib": [
       "esnext",
@@ -34,6 +36,7 @@
     "resolveJsonModule": true,
     "strictNullChecks": true
   },
+  "files": ["src/@types/graphql.d.ts"],
   "include": ["src/**/*", "src/.sequelizerc"],
   "exclude": ["node_modules", "*/.spec.ts", "_tests_", "jest.config.ts"]
 }

@@ -5,7 +5,7 @@ interface Database {
   sequelize: Sequelize;
 }
 
-class MySQLDatabase {
+export class MySQLDatabase {
   private db: Database = {} as Database;
 
   connect() {

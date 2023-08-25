@@ -26,7 +26,14 @@ export type {
   wallpapers_infoCreationAttributes,
 };
 
-export function initModels(sequelize: Sequelize) {
+export interface Models{
+    aov_hero: typeof _aov_hero;
+    categories: typeof _categories;
+    wallpapers: typeof _wallpapers;
+    wallpapers_info: typeof _wallpapers_info;
+}
+
+export function initModels(sequelize: Sequelize): Models {
   const aov_hero = _aov_hero.initModel(sequelize);
   const categories = _categories.initModel(sequelize);
   const wallpapers = _wallpapers.initModel(sequelize);
