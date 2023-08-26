@@ -1,10 +1,10 @@
 import {Sequelize} from "sequelize";
 import {gql} from "apollo-server";
-import {Models} from "@models/init-models";
+import {Models, wallpapersAttributes} from "../database/models/init-models";
 
 export const typeDefs = gql`
     type Wallpapers {
-        wallpapers_id: Int!
+        wallpapers_id: ID!
         name: String!
         image: String!
         createdAt: String!
@@ -14,7 +14,7 @@ export const typeDefs = gql`
     }
     
     type Category {
-        category_id: Int!
+        category_id: ID!
         category_name: String!
         thumbnail: String!
         avatar: String!
@@ -25,8 +25,8 @@ export const typeDefs = gql`
     }
     
     type Wallpaper_Info{
-        wallpaper_id: Int!
-        wallpapers_id: Int!
+        wallpaper_id: ID!
+        wallpapers_id: ID!
         author: String!
         downloaded_times: Int!
         like_times: Int!
@@ -34,31 +34,96 @@ export const typeDefs = gql`
     }
 
     type Hero {
-        id: Int!
+        id: ID!
         hero_id: Int!
         hero_name: String!
         hero_avatar: String!
     }
 
+    enum Order {
+        ASC
+        DESC
+    }
+    
+    enum SortBy {
+        name
+        createdAt
+        updatedAt
+    }
+    
+    type HotWallpaper{
+        wallpaper_id: ID!
+        name: String!
+        image: String!
+        createdAt: String!
+        like_times: Int!
+        views: Int!
+        downloaded_times: Int!
+    }
+
     type Query {
-        Wallpapers: [Wallpapers]!
+        Wallpapers(order: Order = "ASC", limit: Int = 5, sort_by: SortBy = "createdAt", offset: Int = 0): [Wallpapers]!
         Category: [Category]!
         WallpapersInfo(id: Int!): Wallpaper_Info!
+        HotWallpapers(limit: Int! = 7): [HotWallpaper]!
     }
+    
     
     
     type Mutation {
         likeWallpaper(id: Int!): Int!
         addWallpaper(name: String!, image: String!, category_id: Int!, canDownload: Boolean!, author: String!): Boolean!
+        increaseView(wallpaper_id: Int!): Boolean!
     }
 `;
 
+interface ResolversInterface{
+    Query: {
+        Wallpapers: (
+            parent: any,
+            args: {
+            order?: 'ASC' | 'DESC'
+            limit?: number,
+            sort_by?: 'name' | 'createdAt' | 'updatedAt',
+            offset?: number
+        }) => Promise<wallpapersAttributes[]>,
+        Category: () => Promise<any>,
+        WallpapersInfo: (parent: any, args: any, contextValue: any, info: any) => Promise<any>,
+        HotWallpapers : (parant: any, args: any) => Promise<HotWallpapersInterface[]>,
+    },
+    Mutation: {
+        likeWallpaper: (parent: any, args: any, contextValue: any, info: any) => Promise<any>,
+        addWallpaper: (parent: any, args: any, contextValue: any, info: any) => Promise<any>,
+        increaseView: (parent, args: {wallpaper_id: number}) => Promise<boolean>
+    }
+}
 
-export const resolvers = (models: Models) => {
+interface HotWallpapersInterface{
+    wallpaper_id: number,
+    name: string,
+    image: string,
+    createdAt: Date;
+    like_times: number;
+    views: number;
+    downloaded_times: number;
+}
+
+export const resolvers = (models: Models): ResolversInterface => {
    return  {
         Query: {
-            Wallpapers: async () => {
-                const res = await models.wallpapers.findAll();
+            Wallpapers: async (parent, args) => {
+                console.log(args)
+                const order = args.order || 'ASC';
+                const limit = args?.limit || 10;
+                const sort_by = args?.sort_by || 'name';
+                const offset = args?.offset || 0;
+                const res = await models.wallpapers.findAll({
+                    order: [
+                        [sort_by, order]
+                    ],
+                    limit,
+                    offset
+                });
                 return res.map((item) => item.dataValues)
             },
             Category: async () => {
@@ -74,6 +139,38 @@ export const resolvers = (models: Models) => {
                 })
                 console.log(res?.dataValues)
                 return res?.dataValues
+            },
+            HotWallpapers: async (parent, args): Promise<HotWallpapersInterface[]> => {
+               // get in wallpapers but order by like_time in wallpaper info
+                console.info('args', args)
+                const limit = args?.limit || 10;
+                const res: Array<any> = await models.wallpapers_info.findAll({
+                    order: [
+                        ['like_times', 'DESC']
+                    ],
+                    limit,
+                    include: [
+                        {
+                            model: models.wallpapers,
+                            as: 'wallpaper'
+                        }
+                    ]
+                })
+
+                const result: HotWallpapersInterface[] = res.map((item): HotWallpapersInterface => {
+                    const wallpaper = item.dataValues.wallpaper.dataValues;
+                    return {
+                        wallpaper_id: wallpaper.wallpapers_id,
+                        name: wallpaper.name,
+                        image: wallpaper.image,
+                        createdAt: wallpaper.createdAt,
+                        like_times: item.dataValues.like_times,
+                        views: item.dataValues.views,
+                        downloaded_times: item.dataValues.downloaded_times
+                    }
+                })
+                console.log("ok",result)
+                return result
             }
         },
         Mutation: {
@@ -101,6 +198,17 @@ export const resolvers = (models: Models) => {
                 await models.wallpapers_info.create({
                     wallpapers_id: res.wallpapers_id,
                     author,
+                })
+                return true
+            },
+            increaseView: async (parent, args) => {
+                const {wallpaper_id} = args;
+                const res = await models.wallpapers_info.update({
+                    views: Sequelize.literal('views + 1')
+                }, {
+                    where: {
+                        wallpapers_id: wallpaper_id
+                    }
                 })
                 return true
             }
