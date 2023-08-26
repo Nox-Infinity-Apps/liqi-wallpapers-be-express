@@ -66,6 +66,7 @@ export const typeDefs = gql`
         Category: [Category]!
         WallpapersInfo(id: Int!): Wallpaper_Info!
         HotWallpapers(limit: Int! = 7): [HotWallpaper]!
+        RelatedWallpaper(category_id: Int!, limit: Int! = 5): [Wallpapers]!
     }
     
     
@@ -91,6 +92,7 @@ interface ResolversInterface{
         Category: () => Promise<any>,
         WallpapersInfo: (parent: any, args: any, contextValue: any, info: any) => Promise<any>,
         HotWallpapers : (parant: any, args: any) => Promise<HotWallpapersInterface[]>,
+        RelatedWallpaper: (parent: any, args: {category_id: number, limit: number}) => Promise<wallpapersAttributes[]>
     },
     Mutation: {
         likeWallpaper: (parent: any, args: any, contextValue: any, info: any) => Promise<any>,
@@ -185,6 +187,18 @@ export const resolvers = (models: Models): ResolversInterface => {
                 })
                 console.log("ok",result)
                 return result
+            },
+            RelatedWallpaper: async (parent, args) => {
+                const category_id = args.category_id;
+                const limit = args.limit;
+                const res = await models.wallpapers.findAll({
+                    where: {
+                        category_id
+                    },
+                    limit,
+                    order: Sequelize.literal('rand()')
+                })
+                return res.map((item) => item.dataValues)
             }
         },
         Mutation: {
