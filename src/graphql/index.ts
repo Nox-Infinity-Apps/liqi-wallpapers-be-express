@@ -76,6 +76,7 @@ export const typeDefs = gql`
         unlikeWallpaper(id: Int!): Int!
         addWallpaper(name: String!, image: String!, category_id: Int!, canDownload: Boolean!, author: String!): Boolean!
         increaseView(wallpaper_id: Int!): Boolean!
+        addCategory(category_name: String!, thumbnail: String!, avatar: String!, isHeroCategory: Boolean!, heroCategoryId: Int): Boolean!
     }
 `;
 
@@ -99,6 +100,7 @@ interface ResolversInterface{
         unlikeWallpaper: (parent: any, args: {id: number}, contextValue: any, info: any) => Promise<any>,
         addWallpaper: (parent: any, args: any, contextValue: any, info: any) => Promise<any>,
         increaseView: (parent, args: {wallpaper_id: number}) => Promise<boolean>,
+        addCategory: (parent, args: any, contextValue: any, info: any) => Promise<boolean>
     }
 }
 
@@ -237,6 +239,19 @@ export const resolvers = (models: Models): ResolversInterface => {
                 await models.wallpapers_info.create({
                     wallpapers_id: res.wallpapers_id,
                     author,
+                })
+                return true
+            },
+            addCategory: async (parent, args, contextValue, info) => {
+                const {authorization}= contextValue.req.headers;
+                if(authorization !== 'admin') throw new Error('You are not admin');
+                const {category_name, thumbnail, avatar, isHeroCategory, heroCategoryId} = args;
+                const res = await models.categories.create({
+                    category_name,
+                    thumbnail,
+                    avatar,
+                    isHeroCategory,
+                    heroCategoryId
                 })
                 return true
             },
