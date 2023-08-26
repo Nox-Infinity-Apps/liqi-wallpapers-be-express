@@ -82,7 +82,8 @@ export const typeDefs = gql`
         unlikeWallpaper(id: Int!): Int!
         addWallpaper(name: String!, image: String!, category_id: Int!, canDownload: Boolean!, author: String!): Boolean!
         increaseView(wallpaper_id: Int!): Boolean!
-        addCategory(category_name: String!, thumbnail: String!, avatar: String!, isHeroCategory: Boolean!, heroCategoryId: Int): Boolean!
+        addCategory(category_name: String!, thumbnail: String!, avatar: String!, isHeroCategory: Boolean!, heroCategoryId: Int): Boolean!,
+        deleteWallpaper(wallpaper_id: Int!): Boolean!
     }
 `;
 
@@ -111,6 +112,7 @@ interface ResolversInterface{
         addWallpaper: (parent: any, args: any, contextValue: any, info: any) => Promise<any>,
         increaseView: (parent, args: {wallpaper_id: number}) => Promise<boolean>,
         addCategory: (parent, args: any, contextValue: any, info: any) => Promise<boolean>,
+        deleteWallpaper: (parent, args: {wallpaper_id: number}, contextValue) => Promise<boolean>
     }
 }
 
@@ -343,6 +345,17 @@ export const resolvers = (models: Models): ResolversInterface => {
                 const res = await models.wallpapers_info.update({
                     views: Sequelize.literal('views + 1')
                 }, {
+                    where: {
+                        wallpapers_id: wallpaper_id
+                    }
+                })
+                return true
+            },
+            deleteWallpaper: async (parent, args, contextValue) => {
+                const {authorization}= contextValue.req.headers;
+                if(authorization !== 'admin') throw new Error('You are not admin');
+                const {wallpaper_id} = args;
+                const res = await models.wallpapers.destroy({
                     where: {
                         wallpapers_id: wallpaper_id
                     }
