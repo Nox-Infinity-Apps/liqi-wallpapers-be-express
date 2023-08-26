@@ -355,7 +355,12 @@ export const resolvers = (models: Models): ResolversInterface => {
                 const {authorization}= contextValue.req.headers;
                 if(authorization !== 'admin') throw new Error('You are not admin');
                 const {wallpaper_id} = args;
-                const res = await models.wallpapers.destroy({
+                await models.wallpapers_info.destroy({
+                    where: {
+                        wallpapers_id: wallpaper_id
+                    }
+                })
+                await models.wallpapers.destroy({
                     where: {
                         wallpapers_id: wallpaper_id
                     }
