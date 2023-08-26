@@ -1,4 +1,4 @@
-import {Sequelize} from "sequelize";
+import {Sequelize, Op} from "sequelize";
 import {gql} from "apollo-server";
 import {Models, wallpapersAttributes} from "../database/models/init-models";
 
@@ -49,6 +49,7 @@ export const typeDefs = gql`
         name
         createdAt
         updatedAt
+        random
     }
     
     type HotWallpaper{
@@ -60,6 +61,7 @@ export const typeDefs = gql`
         views: Int!
         downloaded_times: Int!
     }
+    
 
     type Query {
         Wallpapers(order: Order = "ASC", limit: Int = 5, sort_by: SortBy = "createdAt", offset: Int = 0): [Wallpapers]!
@@ -67,6 +69,10 @@ export const typeDefs = gql`
         WallpapersInfo(id: Int!): Wallpaper_Info!
         HotWallpapers(limit: Int! = 7): [HotWallpaper]!
         RelatedWallpaper(category_id: Int!, limit: Int! = 5): [Wallpapers]!
+        Search(keyword: String!): [Wallpapers]!
+        SearchCategory(keyword: String!): [Category]!
+        GetSearchSuggestions(keyword: String!): [String]!
+        GetWallpaperInCategory(category_id: Int!, sort_by: SortBy = "random", limit: Int = 5, offset:Int = 0, order: Order = "ASC"): [Wallpapers]!
     }
     
     
@@ -87,20 +93,24 @@ interface ResolversInterface{
             args: {
             order?: 'ASC' | 'DESC'
             limit?: number,
-            sort_by?: 'name' | 'createdAt' | 'updatedAt',
+            sort_by?: 'name' | 'createdAt' | 'updatedAt' | 'random',
             offset?: number
         }) => Promise<wallpapersAttributes[]>,
         Category: () => Promise<any>,
         WallpapersInfo: (parent: any, args: any, contextValue: any, info: any) => Promise<any>,
         HotWallpapers : (parant: any, args: any) => Promise<HotWallpapersInterface[]>,
-        RelatedWallpaper: (parent: any, args: {category_id: number, limit: number}) => Promise<wallpapersAttributes[]>
+        RelatedWallpaper: (parent: any, args: {category_id: number, limit: number}) => Promise<wallpapersAttributes[]>,
+        Search: (parent: any, args: {keyword: string}) => Promise<wallpapersAttributes[]>
+        GetSearchSuggestions: (parent: any, args: {keyword: string}) => Promise<string[]>,
+        GetWallpaperInCategory: (parent: any, args: {category_id: number, sort_by: 'name' | 'createdAt' | 'updatedAt' | 'random', limit: number, offset: number, order: 'ASC' | 'DESC'}) => Promise<wallpapersAttributes[]>
+        SearchCategory: (parent: any, args: {keyword: string}) => Promise<any>,
     },
     Mutation: {
         likeWallpaper: (parent: any, args: any, contextValue: any, info: any) => Promise<any>,
         unlikeWallpaper: (parent: any, args: {id: number}, contextValue: any, info: any) => Promise<any>,
         addWallpaper: (parent: any, args: any, contextValue: any, info: any) => Promise<any>,
         increaseView: (parent, args: {wallpaper_id: number}) => Promise<boolean>,
-        addCategory: (parent, args: any, contextValue: any, info: any) => Promise<boolean>
+        addCategory: (parent, args: any, contextValue: any, info: any) => Promise<boolean>,
     }
 }
 
@@ -123,13 +133,23 @@ export const resolvers = (models: Models): ResolversInterface => {
                 const limit = args?.limit || 10;
                 const sort_by = args?.sort_by || 'name';
                 const offset = args?.offset || 0;
-                const res = await models.wallpapers.findAll({
-                    order: [
-                        [sort_by, order]
-                    ],
-                    limit,
-                    offset
-                });
+
+                let res;
+                if(sort_by === 'random') {
+                    res = await models.wallpapers.findAll({
+                        order: Sequelize.literal('rand()'),
+                        limit,
+                        offset
+                    })
+                } else {
+                     res = await models.wallpapers.findAll({
+                        order: [
+                            [sort_by, order]
+                        ],
+                        limit,
+                        offset
+                    });
+                }
                 return res.map((item) => item.dataValues)
             },
             Category: async () => {
@@ -199,6 +219,69 @@ export const resolvers = (models: Models): ResolversInterface => {
                     },
                     limit,
                     order: Sequelize.literal('rand()')
+                })
+                return res.map((item) => item.dataValues)
+            },
+            Search: async (parent, args) => {
+                const keyword = args.keyword;
+                const res = await models.wallpapers.findAll({
+                    where: {
+                        name: {
+                            [Op.like]: `%${keyword}%`
+                        }
+                    }
+                })
+                return res.map((item) => item.dataValues)
+            },
+            GetSearchSuggestions: async (parent, args) => {
+                const keyword = args.keyword;
+                const res = await models.wallpapers.findAll({
+                    where: {
+                        name: {
+                            [Op.like]: `%${keyword}%`
+                        }
+                    }
+                })
+                return res.map((item) => item.dataValues.name)
+            },
+            GetWallpaperInCategory: async (parent, args) => {
+                const category_id = args.category_id;
+                const sort_by = args.sort_by;
+                const limit = args.limit;
+                const offset = args.offset;
+                const order = args.order;
+                let res;
+                if(sort_by === 'random') {
+                    res = await models.wallpapers.findAll({
+                        where: {
+                            category_id
+                        },
+                        order: Sequelize.literal('rand()'),
+                        limit,
+                        offset
+                    })
+                } else {
+                    res = await models.wallpapers.findAll({
+                        where: {
+                            category_id
+                        },
+                        order: [
+                            [sort_by, order]
+                        ],
+                        limit,
+                        offset
+                    })
+                }
+                return res.map((item) => item.dataValues)
+            },
+            SearchCategory: async (parent, args) => {
+                const keyword = args.keyword;
+                const res = await models.categories.findAll({
+                    where: {
+                        category_name: {
+                            [Op.like]: `%${keyword}%`
+                        }
+                    }
                 })
                 return res.map((item) => item.dataValues)
             }
