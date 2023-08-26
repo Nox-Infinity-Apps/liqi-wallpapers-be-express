@@ -3,14 +3,14 @@ import { ApolloServer } from '@apollo/server';
 import env from "./utils/env/envVars";
 import {resolvers, typeDefs} from './graphql'
 import mysqlDatabase, {MySQLDatabase} from "./database/mysql";
-import {initModels} from ".//database/models/init-models";
+import {initModels} from "./database/models/init-models";
 import cors from 'cors';
 import { json } from 'body-parser';
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
 import http from 'http';
 import express, {Express} from "express";
 import {expressMiddleware} from "@apollo/server/express4";
-import {DocumentNode} from "graphql/language";
+import router from ".//routes/index";
 
 
 dovenv.config();
@@ -36,6 +36,7 @@ class app{
 
     public run(): void{
         this.server.start().then(() => {
+            this.express.use(router)
             this.express.use('/graphql',
                 cors<cors.CorsRequest>({ origin: '*' }),
                 json(),

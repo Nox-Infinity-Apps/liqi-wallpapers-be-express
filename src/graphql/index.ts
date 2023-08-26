@@ -26,7 +26,7 @@ export const typeDefs = gql`
     
     type Wallpaper_Info{
         wallpaper_id: ID!
-        wallpapers_id: ID!
+        image: String!
         author: String!
         downloaded_times: Int!
         like_times: Int!
@@ -72,6 +72,7 @@ export const typeDefs = gql`
     
     type Mutation {
         likeWallpaper(id: Int!): Int!
+        unlikeWallpaper(id: Int!): Int!
         addWallpaper(name: String!, image: String!, category_id: Int!, canDownload: Boolean!, author: String!): Boolean!
         increaseView(wallpaper_id: Int!): Boolean!
     }
@@ -93,8 +94,9 @@ interface ResolversInterface{
     },
     Mutation: {
         likeWallpaper: (parent: any, args: any, contextValue: any, info: any) => Promise<any>,
+        unlikeWallpaper: (parent: any, args: {id: number}, contextValue: any, info: any) => Promise<any>,
         addWallpaper: (parent: any, args: any, contextValue: any, info: any) => Promise<any>,
-        increaseView: (parent, args: {wallpaper_id: number}) => Promise<boolean>
+        increaseView: (parent, args: {wallpaper_id: number}) => Promise<boolean>,
     }
 }
 
@@ -132,13 +134,25 @@ export const resolvers = (models: Models): ResolversInterface => {
             },
             WallpapersInfo: async(parent, args, contextValue, info) => {
                 const id = args.id;
-                const res = await models.wallpapers_info.findOne({
+                const res: any = await models.wallpapers_info.findOne({
                     where: {
                         wallpapers_id: id
-                    }
+                    },
+                    include: [
+                        {
+                            model: models.wallpapers,
+                            as: 'wallpaper'
+                        }]
                 })
                 console.log(res?.dataValues)
-                return res?.dataValues
+                return {
+                    wallpaper_id: res?.dataValues.wallpapers_id,
+                    image: res?.dataValues.wallpaper.dataValues.image,
+                    author: res?.dataValues.author,
+                    downloaded_times: res?.dataValues.downloaded_times,
+                    like_times: res?.dataValues.like_times,
+                    views: res?.dataValues.views
+                }
             },
             HotWallpapers: async (parent, args): Promise<HotWallpapersInterface[]> => {
                // get in wallpapers but order by like_time in wallpaper info
@@ -184,6 +198,17 @@ export const resolvers = (models: Models): ResolversInterface => {
                     }
                 })
                 return res[0]
+            },
+            unlikeWallpaper: async (parent, args, contextValue, info) => {
+                const id = args.id;
+                const res = await models.wallpapers_info.update({
+                    like_times: Sequelize.literal('like_times - 1')
+                }, {
+                    where: {
+                        wallpapers_id: id
+                    }
+                })
+                return true
             },
             addWallpaper: async (parent, args, contextValue, info) => {
                 const {authorization}= contextValue.req.headers;
