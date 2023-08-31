@@ -132,7 +132,6 @@ export const resolvers = (models: Models): ResolversInterface => {
    return  {
         Query: {
             Wallpapers: async (parent, args) => {
-                console.log(args)
                 const order = args.order || 'ASC';
                 const limit = args?.limit || 10;
                 const sort_by = args?.sort_by || 'name';
@@ -200,8 +199,6 @@ export const resolvers = (models: Models): ResolversInterface => {
                 }
             },
             HotWallpapers: async (parent, args): Promise<HotWallpapersInterface[]> => {
-               // get in wallpapers but order by like_time in wallpaper info
-                console.info('args', args)
                 const limit = args?.limit || 10;
                 const res: Array<any> = await models.wallpapers_info.findAll({
                     order: [
@@ -228,7 +225,6 @@ export const resolvers = (models: Models): ResolversInterface => {
                         downloaded_times: item.dataValues.downloaded_times
                     }
                 })
-                console.log("ok",result)
                 return result
             },
             RelatedWallpaper: async (parent, args) => {
