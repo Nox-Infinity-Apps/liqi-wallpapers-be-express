@@ -26,6 +26,7 @@ export const typeDefs = gql`
     
     type Wallpaper_Info{
         wallpaper_id: ID!
+        category_id: Int!
         image: String!
         author: String!
         downloaded_times: Int!
@@ -50,6 +51,7 @@ export const typeDefs = gql`
         createdAt
         updatedAt
         random
+        views
     }
     
     type HotWallpaper{
@@ -94,7 +96,7 @@ interface ResolversInterface{
             args: {
             order?: 'ASC' | 'DESC'
             limit?: number,
-            sort_by?: 'name' | 'createdAt' | 'updatedAt' | 'random',
+            sort_by?: 'name' | 'createdAt' | 'updatedAt' | 'random' | 'views',
             offset?: number
         }) => Promise<wallpapersAttributes[]>,
         Category: () => Promise<any>,
@@ -137,7 +139,23 @@ export const resolvers = (models: Models): ResolversInterface => {
                 const offset = args?.offset || 0;
 
                 let res;
-                if(sort_by === 'random') {
+
+                if(sort_by === "views"){
+                    res = await models.wallpapers_info.findAll({
+                        order: [
+                            ['views', order]
+                        ],
+                        limit,
+                        offset,
+                        include: [
+                            {
+                                model: models.wallpapers,
+                                as: 'wallpaper'
+                            }
+                        ]
+                    })
+                    return res.map((item) => item.dataValues.wallpaper.dataValues)
+                }else if(sort_by === 'random') {
                     res = await models.wallpapers.findAll({
                         order: Sequelize.literal('rand()'),
                         limit,
@@ -170,9 +188,10 @@ export const resolvers = (models: Models): ResolversInterface => {
                             as: 'wallpaper'
                         }]
                 })
-                console.log(res?.dataValues)
+
                 return {
                     wallpaper_id: res?.dataValues.wallpapers_id,
+                    category_id: res?.dataValues.wallpaper.dataValues.category_id,
                     image: res?.dataValues.wallpaper.dataValues.image,
                     author: res?.dataValues.author,
                     downloaded_times: res?.dataValues.downloaded_times,

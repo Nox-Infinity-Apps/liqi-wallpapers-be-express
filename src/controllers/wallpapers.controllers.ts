@@ -6,6 +6,7 @@ import zod from "zod";
 enum SortBy {
   name = "name",
   createdAt = "createdAt",
+  views = "views",
 }
 
 enum Order {
